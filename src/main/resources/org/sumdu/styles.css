@@ -1,0 +1,37 @@
+.label {
+    -fx-font-size: 18px;
+    -fx-text-fill: #e87d3e;
+    -fx-font-weight: bold;
+}
+
+.choice-box {
+    -fx-background-color: #434c5e;
+}
+
+.menu-item {
+    -fx-text-fill: #282c34;
+}
+
+.save-button {
+    -fx-background-color: #98c379;
+    -fx-font-size: 18px;
+}
+
+.generate-button {
+    -fx-background-color: #e5c07b;
+    -fx-font-size: 18px;
+}
+
+.revert-button {
+    -fx-background-color: #e06c75;
+    -fx-font-size: 18px;
+}
+
+.pane {
+    -fx-background-color: #282c34;
+}
+
+.text-box {
+    -fx-background-color: #abb2bf;
+    -fx-font-size: 18px;
+}
