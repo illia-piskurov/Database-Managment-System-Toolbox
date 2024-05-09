@@ -29,15 +29,18 @@ public class NewController {
         databases = Map.of(
                 "PostgreSQL", Map.of(
                         "port", "5432",
-                        "pass", "admin"
+                        "pass", "admin",
+                        "image_name", "postgres:latest"
                 ),
                 "MySQL", Map.of(
                         "port", "3306",
-                        "pass", "admin"
+                        "pass", "admin",
+                        "image_name", "mysql:latest"
                 ),
                 "MariaDB", Map.of(
                         "port", "3307",
-                        "pass", "admin"
+                        "pass", "admin",
+                        "image_name", "mariadb:latest"
                 )
         );
 
@@ -74,10 +77,12 @@ public class NewController {
             alert.setContentText("Port must be a integer!");
             alert.showAndWait();
         } else {
+            var database = DatabaseComboBox.getSelectionModel().getSelectedItem();
             mainController.setDataAboutNewDatabase(
-                    DatabaseComboBox.getSelectionModel().getSelectedItem(),
+                    database,
                     PasswordText.getText(),
-                    PortText.getText()
+                    PortText.getText(),
+                    databases.get(database).get("image_name")
             );
 
             Stage stage = (Stage) CancelButton.getScene().getWindow();

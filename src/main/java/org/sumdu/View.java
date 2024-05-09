@@ -52,5 +52,4 @@ public class View extends Application {
             return false;
         }
     }
-
 }
