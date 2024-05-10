@@ -1,9 +1,15 @@
 package org.sumdu.controllers;
 
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.exceptions.DockerCertificateException;
-import com.spotify.docker.client.exceptions.DockerException;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.exception.DockerException;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Ports;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
@@ -17,12 +23,15 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.application.Platform;
 
-import java.io.Closeable;
+import org.sumdu.models.DatabaseInstance;
+
 import java.io.IOException;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Collections;
+import java.util.Map;
 
 public class MainController {
     public Button NewButton;
@@ -30,12 +39,22 @@ public class MainController {
 
     private DockerClient dockerClient;
 
+    private Map<String, String> containers = new HashMap<String, String>();
+
     public void initialize() {
-        try {
-            dockerClient = DefaultDockerClient.fromEnv().uri("npipe:////./pipe/docker_engine").build();
-        } catch (DockerCertificateException e) {
-            throw new RuntimeException(e);
-        }
+        DefaultDockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withDockerHost("npipe:////./pipe/docker_engine")
+                .build();
+
+        DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
+                .dockerHost(config.getDockerHost())
+                .sslConfig(config.getSSLConfig())
+                .maxConnections(100)
+                .connectionTimeout(Duration.ofSeconds(30))
+                .responseTimeout(Duration.ofSeconds(45))
+                .build();
+
+        dockerClient = DockerClientImpl.getInstance(config, httpClient);
     }
 
     public void newButtonClicked(MouseEvent mouseEvent) {
@@ -55,14 +74,14 @@ public class MainController {
         }
     }
 
-    public void setDataAboutNewDatabase(String name, String pass, String port, String image_name) {
-        if (isImageDownloaded(image_name)) {
-            addButtonAndLabel(image_name);
+    public void addNewDatabaseInstance(DatabaseInstance database) {
+        if (isImageDownloaded(database.getImage_name())) {
+            addButtonAndLabel(database);
         } else {
             ProgressBar progressBar = new ProgressBar();
             progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
 
-            Label label = new Label("Downloading " + image_name + "...");
+            Label label = new Label("Downloading " + database.getImage_name() + "...");
             HBox.setMargin(label, new Insets(0, 10, 0, 0));
             HBox hbox = new HBox(label, progressBar);
 
@@ -70,7 +89,7 @@ public class MainController {
 
             DatabasesView.getItems().add(vbox);
 
-            pullImage(image_name, vbox, name);
+            //pullImage(image_name, vbox, name);
         }
     }
 
@@ -107,16 +126,28 @@ public class MainController {
 //        });
     }
 
-    private void addButtonAndLabel(String name) {
+    private void addButtonAndLabel(DatabaseInstance database) {
         Button deleteButton = new Button("Delete");
         deleteButton.setOnAction(event -> {
-            VBox vboxToRemove = (VBox)((Button) event.getSource()).getParent().getParent();
+            VBox vboxToRemove = (VBox) ((Button) event.getSource()).getParent().getParent();
             DatabasesView.getItems().remove(vboxToRemove);
         });
 
-        Label label = new Label(name);
-        HBox.setMargin(label, new Insets(0, 10, 0, 0));
-        HBox hbox = new HBox(label, deleteButton);
+        Button runAndStopButton = new Button("Run");
+        runAndStopButton.setOnAction(event -> {
+            var button = (Button) event.getSource();
+            if (button.getText().equals("Run")) {
+                runDockerContainer(database);
+                button.setText("Stop");
+            } else {
+                stopContainer(database.getName());
+                button.setText("Run");
+            }
+        });
+
+        Label label = new Label(database.getName() + " (" + database.getDatabase() + ")");
+        HBox hbox = new HBox(runAndStopButton, deleteButton, label);
+        hbox.setSpacing(10);
 
         VBox vbox = new VBox(hbox);
 
@@ -125,11 +156,65 @@ public class MainController {
 
     private boolean isImageDownloaded(String imageName) {
         try {
-            List<com.spotify.docker.client.messages.Image> images = dockerClient.listImages(DockerClient.ListImagesParam.byName(imageName));
+            List<com.github.dockerjava.api.model.Image> images = dockerClient.listImagesCmd()
+                    .withImageNameFilter(imageName)
+                    .exec();
             return !images.isEmpty();
-        } catch (DockerException | InterruptedException e) {
+        } catch (DockerException e) {
             e.printStackTrace();
             return false;
         }
+    }
+
+    private boolean isContainerExists(String containerName) throws DockerException, InterruptedException {
+        return dockerClient.listContainersCmd()
+                .withNameFilter(Collections.singletonList(containerName))
+                .exec()
+                .stream()
+                .anyMatch(container -> container.getNames()[0].equals("/" + containerName));
+    }
+
+    private void runDockerContainer(DatabaseInstance database) {
+        try {
+            if (isContainerExists(database.getImage_name())) {
+                startContainer(database.getName());
+            } else {
+                createAndStartContainer(database);
+            }
+        } catch (DockerException | InterruptedException e) {
+            e.printStackTrace();
+            // Обработка ошибок, если не удалось создать или запустить контейнер
+        }
+    }
+
+    private void startContainer(String containerName) throws DockerException, InterruptedException {
+        dockerClient.startContainerCmd(containerName).exec();
+    }
+
+    private void stopContainer(String containerName) {
+        dockerClient.stopContainerCmd(containers.get(containerName)).exec();
+    }
+
+    private void createAndStartContainer(DatabaseInstance database) throws DockerException, InterruptedException {
+        int hostPort = Integer.parseInt(database.getPort());
+
+        ExposedPort tcp5432 = ExposedPort.tcp(hostPort);
+        Ports portBindings = new Ports();
+        portBindings.bind(tcp5432, Ports.Binding.bindPort(hostPort));
+
+        HostConfig hostConfig = HostConfig.newHostConfig()
+                .withPortBindings(portBindings);
+
+        CreateContainerResponse container = dockerClient.createContainerCmd(database.getImage_name())
+                .withHostConfig(hostConfig)
+                .withExposedPorts(tcp5432)
+                .withEnv(
+                        "POSTGRES_PASSWORD=" + database.getPass(),
+                        "PGPORT=" + database.getPort())
+                .exec();
+
+        containers.put(database.getName(), container.getId());
+
+        dockerClient.startContainerCmd(container.getId()).exec();
     }
 }

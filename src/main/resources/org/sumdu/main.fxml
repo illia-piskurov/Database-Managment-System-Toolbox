@@ -13,6 +13,6 @@
             <Font name="System Bold" size="18.0" />
          </font>
       </Button>
-      <ListView fx:id="DatabasesView" layoutX="14.0" layoutY="14.0" prefHeight="518.0" prefWidth="574.0" style="-fx-font-size: 20;" />
+      <ListView fx:id="DatabasesView" layoutX="14.0" layoutY="14.0" prefHeight="518.0" prefWidth="574.0" style="-fx-font-size: 18;" />
    </children>
 </AnchorPane>

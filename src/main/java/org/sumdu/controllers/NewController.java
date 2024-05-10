@@ -6,6 +6,7 @@ import javafx.event.ActionEvent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import org.sumdu.models.DatabaseInstance;
 
 import java.util.Map;
 
@@ -77,13 +78,15 @@ public class NewController {
             alert.setContentText("Port must be a integer!");
             alert.showAndWait();
         } else {
-            var database = DatabaseComboBox.getSelectionModel().getSelectedItem();
-            mainController.setDataAboutNewDatabase(
-                    database,
-                    PasswordText.getText(),
+            var database_type = DatabaseComboBox.getSelectionModel().getSelectedItem();
+            var database =  new DatabaseInstance(
+                    database_type,
+                    databases.get(database_type).get("image_name"),
+                    NameText.getText(),
                     PortText.getText(),
-                    databases.get(database).get("image_name")
+                    PasswordText.getText()
             );
+            mainController.addNewDatabaseInstance(database);
 
             Stage stage = (Stage) CancelButton.getScene().getWindow();
             stage.close();
