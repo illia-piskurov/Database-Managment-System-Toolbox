@@ -17,14 +17,11 @@ import org.sumdu.controllers.MainController;
 import org.sumdu.models.DatabaseInstance;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DockerService {
-    private DockerClient dockerClient;
+    private final DockerClient dockerClient;
 
     public DockerService() {
         DefaultDockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
@@ -42,49 +39,32 @@ public class DockerService {
         dockerClient = DockerClientImpl.getInstance(config, httpClient);
     }
 
-    public boolean isImageDownloaded(String imageName) {
-        try {
-            List<Image> images = dockerClient.listImagesCmd()
-                    .exec();
-
-            for (Image image : images) {
-                if (image.getRepoTags() != null) {
-                    for (String repoTag : image.getRepoTags()) {
-                        if (repoTag.equals(imageName)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        } catch (DockerException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public boolean isImageDownloaded(String imageName) throws DockerException {
+            return dockerClient.listImagesCmd()
+                    .exec()
+                    .stream()
+                    .flatMap(image -> Arrays.stream(image.getRepoTags()))
+                    .anyMatch(repoTag -> repoTag.equals(imageName));
     }
 
-    public boolean isContainerExists(String containerName) throws DockerException, InterruptedException {
+    public boolean isContainerExists(String containerId) throws DockerException {
         return dockerClient.listContainersCmd()
-                .withNameFilter(Collections.singletonList(containerName))
+                .withShowAll(true)
+                .withIdFilter(Collections.singletonList(containerId))
                 .exec()
                 .stream()
-                .anyMatch(container -> container.getNames()[0].equals("/" + containerName));
+                .anyMatch(container -> container.getId().equals(containerId));
     }
 
-    public void runDockerContainer(DatabaseInstance database, Map<String, String> containers) {
-        try {
-            if (isContainerExists(database.getImage_name())) {
-                startContainer(database.getName());
-            } else {
-                createAndStartContainer(database, containers);
-            }
-        } catch (DockerException | InterruptedException e) {
-            e.printStackTrace();
-            // Обработка ошибок, если не удалось создать или запустить контейнер
+    public void runDockerContainer(DatabaseInstance database) throws DockerException, InterruptedException {
+        if (isContainerExists(database.getContainerId())) {
+            startContainer(database.getContainerId());
+        } else {
+            createAndStartContainer(database);
         }
     }
 
-    public void startContainer(String containerName) throws DockerException, InterruptedException {
+    public void startContainer(String containerName) throws DockerException {
         dockerClient.startContainerCmd(containerName).exec();
     }
 
@@ -92,7 +72,7 @@ public class DockerService {
         dockerClient.stopContainerCmd(containerName).exec();
     }
 
-    public void createAndStartContainer(DatabaseInstance database, Map<String, String> containers) throws DockerException, InterruptedException {
+    public void createAndStartContainer(DatabaseInstance database) throws DockerException {
         int hostPort = Integer.parseInt(database.getPort());
 
         ExposedPort tcp5432 = ExposedPort.tcp(hostPort);
@@ -108,9 +88,17 @@ public class DockerService {
                 .withEnv(
                         "POSTGRES_PASSWORD=" + database.getPass(),
                         "PGPORT=" + database.getPort())
+                .withLabels(Map.of(
+                        "dms-toolbox", "",
+                        "port", database.getPort(),
+                        "pass", database.getPass(),
+                        "name", database.getName(),
+                        "image_name", database.getImage_name(),
+                        "database", database.getDatabase()
+                ))
                 .exec();
 
-        containers.put(database.getName(), container.getId());
+        database.setContainerId(container.getId());
 
         dockerClient.startContainerCmd(container.getId()).exec();
     }
@@ -143,8 +131,34 @@ public class DockerService {
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
             }
         });
+    }
+
+    public List<DatabaseInstance> readListsOfDatabases() throws DockerException {
+        List<DatabaseInstance> databaseInstances = new ArrayList<>();
+
+        dockerClient.listContainersCmd()
+                .withShowAll(true)
+                .withLabelFilter(Collections.singletonList("dms-toolbox"))
+                .exec()
+                .forEach(container -> {
+                    Map<String, String> labels = container.getLabels();
+                    DatabaseInstance databaseInstance = new DatabaseInstance();
+                    databaseInstance.setName(labels.get("name"));
+                    databaseInstance.setPort(labels.get("port"));
+                    databaseInstance.setPass(labels.get("pass"));
+                    databaseInstance.setImage_name(labels.get("image_name"));
+                    databaseInstance.setDatabase(labels.get("database"));
+                    databaseInstance.setContainerId(container.getId());
+                    databaseInstances.add(databaseInstance);
+                });
+
+        return databaseInstances;
+    }
+
+    public void removeContainer(String containerId) throws DockerException, InterruptedException {
+        dockerClient.removeContainerCmd(containerId).exec();
     }
 }

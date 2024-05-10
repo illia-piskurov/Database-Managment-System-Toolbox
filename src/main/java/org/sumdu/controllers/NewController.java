@@ -1,11 +1,13 @@
 package org.sumdu.controllers;
 
+import com.github.dockerjava.api.exception.DockerException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import org.sumdu.helpers.AlertHelper;
 import org.sumdu.models.DatabaseInstance;
 
 import java.util.Map;
@@ -60,23 +62,11 @@ public class NewController {
 
     public void createButtonClicked(MouseEvent mouseEvent) {
         if (NameText.getText().isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
-            alert.setContentText("Name cannot be empty!");
-            alert.showAndWait();
+            AlertHelper.showAlert("Name cannot be empty!");
         } else if (PasswordText.getText().isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
-            alert.setContentText("Password cannot be empty!");
-            alert.showAndWait();
+            AlertHelper.showAlert("Password cannot be empty!");
         } else if (!PortText.getText().matches("\\d+")) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
-            alert.setContentText("Port must be a integer!");
-            alert.showAndWait();
+            AlertHelper.showAlert("Port must be a integer!");
         } else {
             var database_type = DatabaseComboBox.getSelectionModel().getSelectedItem();
             var database =  new DatabaseInstance(
@@ -86,7 +76,12 @@ public class NewController {
                     PortText.getText(),
                     PasswordText.getText()
             );
-            mainController.addNewDatabaseInstance(database);
+
+            try {
+                mainController.addNewDatabaseInstance(database);
+            } catch (DockerException e) {
+                AlertHelper.showAlert(e.getMessage());
+            }
 
             Stage stage = (Stage) CancelButton.getScene().getWindow();
             stage.close();

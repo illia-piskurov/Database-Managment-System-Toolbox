@@ -6,6 +6,7 @@ public class DatabaseInstance {
     private String name;
     private String port;
     private String pass;
+    private String containerId;
 
     public DatabaseInstance(String database, String image_name, String name, String port, String pass) {
         this.database = database;
@@ -13,6 +14,9 @@ public class DatabaseInstance {
         this.name = name;
         this.port = port;
         this.pass = pass;
+    }
+
+    public DatabaseInstance() {
     }
 
     public String getDatabase() {
@@ -33,5 +37,33 @@ public class DatabaseInstance {
 
     public String getPass() {
         return pass;
+    }
+
+    public String getContainerId() {
+        return containerId;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
+    }
+
+    public void setImage_name(String image_name) {
+        this.image_name = image_name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setPort(String port) {
+        this.port = port;
+    }
+
+    public void setPass(String pass) {
+        this.pass = pass;
+    }
+
+    public void setContainerId(String containerId) {
+        this.containerId = containerId;
     }
 }
