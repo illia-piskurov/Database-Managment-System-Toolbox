@@ -44,11 +44,11 @@ public class DockerService {
     }
 
     public boolean isImageDownloaded(String imageName) throws DockerException {
-            return dockerClient.listImagesCmd()
-                    .exec()
-                    .stream()
-                    .flatMap(image -> Arrays.stream(image.getRepoTags()))
-                    .anyMatch(repoTag -> repoTag.equals(imageName));
+        return dockerClient.listImagesCmd()
+                .exec()
+                .stream()
+                .flatMap(image -> Arrays.stream(image.getRepoTags()))
+                .anyMatch(repoTag -> repoTag.equals(imageName));
     }
 
     public boolean isContainerExists(String containerId) throws DockerException {
@@ -181,5 +181,15 @@ public class DockerService {
 
     public void removeContainer(String containerId) throws DockerException, InterruptedException {
         dockerClient.removeContainerCmd(containerId).exec();
+    }
+
+    public boolean isContainerRunning(String containerId) throws DockerException {
+        List<Container> containers = dockerClient.listContainersCmd()
+                .withShowAll(true)
+                .withIdFilter(Collections.singletonList(containerId))
+                .exec();
+        return containers
+                .stream()
+                .anyMatch(container -> container.getState().equals("running"));
     }
 }

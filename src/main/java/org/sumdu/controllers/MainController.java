@@ -125,4 +125,12 @@ public class MainController {
 
         DatabasesView.getItems().add(item);
     }
+
+    public void stopAllContainers() {
+        for (DatabaseInstance database : databaseInstances) {
+            if (dockerService.isContainerRunning(database.getContainerId())) {
+                dockerService.stopContainer(database.getContainerId());
+            }
+        }
+    }
 }

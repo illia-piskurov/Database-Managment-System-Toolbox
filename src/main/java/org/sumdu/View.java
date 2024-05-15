@@ -6,6 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
+import org.sumdu.controllers.MainController;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,11 +17,14 @@ public class View extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         if (isDockerInstalled()) {
-            Parent root = FXMLLoader.load(getClass().getResource("main.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("main.fxml"));
+            Parent root = loader.load();
+            MainController mainController = loader.getController();
             primaryStage.getIcons().add(new Image(String.valueOf(getClass().getResource("icon.png"))));
             primaryStage.setTitle("Database Management System Toolbox");
             primaryStage.setScene(new Scene(root, 600, 600));
             primaryStage.setResizable(false);
+            primaryStage.setOnCloseRequest(event -> mainController.stopAllContainers());
             primaryStage.show();
         } else {
             Parent root = FXMLLoader.load(getClass().getResource("nodocker.fxml"));
