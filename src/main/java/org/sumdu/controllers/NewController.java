@@ -8,9 +8,12 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import org.sumdu.helpers.AlertHelper;
+import org.sumdu.helpers.JSONHelper;
 import org.sumdu.models.DatabaseInstance;
 
-import java.util.Map;
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class NewController {
     public Button CancelButton;
@@ -25,39 +28,26 @@ public class NewController {
     public Label DatabaseLabel;
     public Label TitleLabel;
 
-    private Map<String, Map<String, String>> databases;
     private MainController mainController;
+    private List<DatabaseInstance> databases;
 
-    public void initialize() {
-        databases = Map.of(
-                "PostgreSQL", Map.of(
-                        "port", "5432",
-                        "pass", "admin",
-                        "image_name", "postgres:latest"
-                ),
-                "MySQL", Map.of(
-                        "port", "3306",
-                        "pass", "admin",
-                        "image_name", "mysql:latest"
-                ),
-                "MariaDB", Map.of(
-                        "port", "3307",
-                        "pass", "admin",
-                        "image_name", "mariadb:latest"
-                ),
-                "DB2", Map.of(
-                        "port", "50000",
-                        "pass", "admin",
-                        "image_name", "ibmcom/db2:latest"
-                )
+    public void initialize() throws IOException {
+        databases = JSONHelper.readDatabaseInstancesFromFile("./config.json");
+
+        ObservableList<String> databaseList = FXCollections.observableArrayList(
+                databases.stream()
+                        .map(DatabaseInstance::getDatabase)
+                        .collect(Collectors.toList())
         );
-
-        ObservableList<String> databaseList = FXCollections.observableArrayList(databases.keySet());
+        var postgresInstance = databases.stream()
+                .filter(instance -> "PostgreSQL".equals(instance.getDatabase()))
+                .findFirst()
+                .orElse(null);
 
         DatabaseComboBox.setItems(databaseList);
-        DatabaseComboBox.getSelectionModel().select("PostgreSQL");
-        PasswordText.setText(databases.get("PostgreSQL").get("pass"));
-        PortText.setText(databases.get("PostgreSQL").get("port"));
+        DatabaseComboBox.getSelectionModel().select(postgresInstance.getDatabase());
+        PasswordText.setText(postgresInstance.getPass());
+        PortText.setText(postgresInstance.getPort());
     }
 
     public void cancelButtonClicked(MouseEvent mouseEvent) {
@@ -74,12 +64,17 @@ public class NewController {
             AlertHelper.showAlert("Port must be a integer!");
         } else {
             var database_type = DatabaseComboBox.getSelectionModel().getSelectedItem();
+            var dbInstance = databases.stream()
+                    .filter(instance -> database_type.equals(instance.getDatabase()))
+                    .findFirst()
+                    .orElse(null);
             var database =  new DatabaseInstance(
-                    database_type,
-                    databases.get(database_type).get("image_name"),
+                    dbInstance.getDatabase(),
+                    dbInstance.getImage_name(),
                     NameText.getText(),
                     PortText.getText(),
-                    PasswordText.getText()
+                    PasswordText.getText(),
+                    dbInstance.getEnvs()
             );
 
             try {
@@ -95,8 +90,12 @@ public class NewController {
 
     public void onDatabaseComboBoxAction(ActionEvent actionEvent) {
         String selectedDatabase = DatabaseComboBox.getSelectionModel().getSelectedItem();
-        PasswordText.setText(databases.get(selectedDatabase).get("pass"));
-        PortText.setText(databases.get(selectedDatabase).get("port"));
+        var dbInstance = databases.stream()
+                .filter(instance -> selectedDatabase.equals(instance.getDatabase()))
+                .findFirst()
+                .orElse(null);
+        PasswordText.setText(dbInstance.getPass());
+        PortText.setText(dbInstance.getPort());
     }
 
     public void setMainController(MainController mainController) {

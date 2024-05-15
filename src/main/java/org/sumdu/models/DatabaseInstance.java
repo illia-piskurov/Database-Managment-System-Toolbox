@@ -1,5 +1,10 @@
 package org.sumdu.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.util.Map;
+
+@JsonIgnoreProperties({"jdbcStr"})
 public class DatabaseInstance {
     private String database;
     private String image_name;
@@ -7,13 +12,15 @@ public class DatabaseInstance {
     private String port;
     private String pass;
     private String containerId;
+    private Map<String, String> envs;
 
-    public DatabaseInstance(String database, String image_name, String name, String port, String pass) {
+    public DatabaseInstance(String database, String image_name, String name, String port, String pass, Map<String, String> envs) {
         this.database = database;
         this.image_name = image_name;
         this.name = name;
         this.port = port;
         this.pass = pass;
+        this.envs = envs;
     }
 
     public DatabaseInstance() {
@@ -41,6 +48,10 @@ public class DatabaseInstance {
 
     public String getContainerId() {
         return containerId;
+    }
+
+    public Map<String, String> getEnvs() {
+        return envs;
     }
 
     public String getJDBCStr() {
@@ -81,5 +92,9 @@ public class DatabaseInstance {
 
     public void setContainerId(String containerId) {
         this.containerId = containerId;
+    }
+
+    public void setEnvs(Map<String, String> envs) {
+        this.envs = envs;
     }
 }

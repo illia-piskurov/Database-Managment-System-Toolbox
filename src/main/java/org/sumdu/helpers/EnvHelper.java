@@ -2,29 +2,28 @@ package org.sumdu.helpers;
 
 import org.sumdu.models.DatabaseInstance;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public class EnvHelper {
     public static String[] getEnvVars(DatabaseInstance database) {
-        return switch (database.getDatabase().toLowerCase()) {
-            case "postgresql" -> new String[] {
-                    "POSTGRES_PASSWORD=" + database.getPass(),
-                    "PGPORT=" + database.getPort()
-            };
-            case "mysql" -> new String[] {
-                    "MYSQL_ROOT_PASSWORD=" + database.getPass(),
-                    "MYSQL_SSL_MODE=DISABLED",
-                    "MYSQL_ALLOW_CLEAR_PASSWORD=yes"
-            };
-            case "mariadb" -> new String[] {
-                    "MARIADB_ROOT_PASSWORD=" + database.getPass(),
-                    "MARIADB_SSL_MODE=DISABLED",
-                    "MARIADB_ALLOW_CLEAR_PASSWORD=yes"
-            };
-            case "db2" -> new String[] {
-                    "DB2INST1_PASSWORD=" + database.getPass(),
-                    "LICENSE=accept",
-                    "DBNAME=toolbox"
-            };
-            default -> throw new IllegalArgumentException("Unsupported database type: " + database.getDatabase());
-        };
+        List<String> envVars = new ArrayList<>();
+        Class<?> clazz = database.getClass();
+        for (Map.Entry<String, String> entry : database.getEnvs().entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            try {
+                Method method = clazz.getDeclaredMethod(value);
+                Object methodResult = method.invoke(database);
+                envVars.add(key + methodResult);
+            } catch (NoSuchMethodException e) {
+                envVars.add(key + value);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return envVars.toArray(new String[0]);
     }
 }
