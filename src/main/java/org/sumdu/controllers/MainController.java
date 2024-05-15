@@ -80,7 +80,7 @@ public class MainController {
         deleteButton.setOnAction(event -> {
             try {
                 dockerService.removeContainer(database.getContainerId());
-                VBox vboxToRemove = (VBox) ((Button) event.getSource()).getParent().getParent();
+                HBox vboxToRemove = (HBox) ((Button) event.getSource()).getParent().getParent();
                 DatabasesView.getItems().remove(vboxToRemove);
             } catch (InterruptedException e) {
                 AlertHelper.showAlert(e.getMessage());
@@ -104,11 +104,7 @@ public class MainController {
         });
 
         Label nameLabel = new Label(String.format("%s (%s)", database.getName(), database.getDatabase()));
-        String jdbcStr = String.format(
-                "jdbc:%s://localhost:%s",
-                database.getDatabase().toLowerCase(),
-                database.getPort()
-        );
+        String jdbcStr = database.getJDBCStr();
         Label jdbcLabel = new Label(jdbcStr);
 
         Button copyButton = new Button("Copy JDBC to clipboard");

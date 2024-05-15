@@ -14,9 +14,13 @@ import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import org.sumdu.controllers.MainController;
+import org.sumdu.helpers.EnvHelper;
 import org.sumdu.models.DatabaseInstance;
 
 import java.io.Closeable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
 
@@ -75,19 +79,25 @@ public class DockerService {
     public void createAndStartContainer(DatabaseInstance database) throws DockerException {
         int hostPort = Integer.parseInt(database.getPort());
 
-        ExposedPort tcp5432 = ExposedPort.tcp(hostPort);
+        ExposedPort exposedPort = ExposedPort.tcp(hostPort);
         Ports portBindings = new Ports();
-        portBindings.bind(tcp5432, Ports.Binding.bindPort(hostPort));
+        portBindings.bind(exposedPort, Ports.Binding.bindPort(hostPort));
+
+        String hostDirectory = String.format("C:\\%s\\data", database.getDatabase().toLowerCase());
+        createDirectoryIfNotExists(hostDirectory);
+
+        Volume volume = new Volume("/database");
+        Bind bind = new Bind(hostDirectory, volume);
 
         HostConfig hostConfig = HostConfig.newHostConfig()
-                .withPortBindings(portBindings);
+                .withPortBindings(portBindings)
+                .withBinds(bind);
 
+        var envVars = EnvHelper.getEnvVars(database);
         CreateContainerResponse container = dockerClient.createContainerCmd(database.getImage_name())
                 .withHostConfig(hostConfig)
-                .withExposedPorts(tcp5432)
-                .withEnv(
-                        "POSTGRES_PASSWORD=" + database.getPass(),
-                        "PGPORT=" + database.getPort())
+                .withExposedPorts(exposedPort)
+                .withEnv(envVars)
                 .withLabels(Map.of(
                         "dms-toolbox", "",
                         "port", database.getPort(),
@@ -101,6 +111,17 @@ public class DockerService {
         database.setContainerId(container.getId());
 
         dockerClient.startContainerCmd(container.getId()).exec();
+    }
+
+    private void createDirectoryIfNotExists(String directoryPath) {
+        Path path = Paths.get(directoryPath);
+        try {
+            if (!Files.exists(path)) {
+                Files.createDirectories(path);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create directory: " + directoryPath, e);
+        }
     }
 
     public void pullImage(DatabaseInstance database, VBox vbox, MainController mainController) {

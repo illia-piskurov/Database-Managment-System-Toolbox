@@ -43,6 +43,22 @@ public class DatabaseInstance {
         return containerId;
     }
 
+    public String getJDBCStr() {
+        return switch (getDatabase().toLowerCase()) {
+            case "postgresql", "db2" -> String.format(
+                    "jdbc:%s://localhost:%s",
+                    getDatabase().toLowerCase(),
+                    getPort()
+            );
+            case "mysql", "mariadb" -> String.format(
+                    "jdbc:%s://localhost:%s?allowPublicKeyRetrieval=true&useSSL=False;",
+                    getDatabase().toLowerCase(),
+                    getPort()
+            );
+            default -> throw new IllegalArgumentException("Unsupported database type: " + getDatabase());
+        };
+    }
+
     public void setDatabase(String database) {
         this.database = database;
     }

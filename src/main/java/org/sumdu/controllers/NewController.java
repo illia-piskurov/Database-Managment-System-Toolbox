@@ -44,6 +44,11 @@ public class NewController {
                         "port", "3307",
                         "pass", "admin",
                         "image_name", "mariadb:latest"
+                ),
+                "DB2", Map.of(
+                        "port", "50000",
+                        "pass", "admin",
+                        "image_name", "ibmcom/db2:latest"
                 )
         );
 
