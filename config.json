@@ -1,0 +1,48 @@
+[ {
+  "database" : "PostgreSQL",
+  "image_name" : "postgres:latest",
+  "name" : null,
+  "port" : "5432",
+  "pass" : "admin",
+  "containerId" : null,
+  "envs" : {
+    "PGPORT=" : "getPort",
+    "POSTGRES_PASSWORD=" : "getPass"
+  }
+}, {
+  "database" : "MySQL",
+  "image_name" : "mysql:latest",
+  "name" : null,
+  "port" : "3306",
+  "pass" : "admin",
+  "containerId" : null,
+  "envs" : {
+    "MYSQL_ALLOW_CLEAR_PASSWORD=" : "yes",
+    "MYSQL_SSL_MODE=" : "DISABLED",
+    "MYSQL_ROOT_PASSWORD=" : "getPass"
+  }
+}, {
+  "database" : "MariaDB",
+  "image_name" : "mariadb:latest",
+  "name" : null,
+  "port" : "3307",
+  "pass" : "admin",
+  "containerId" : null,
+  "envs" : {
+    "MARIADB_SSL_MODE=" : "DISABLED",
+    "MARIADB_ROOT_PASSWORD=" : "getPass",
+    "MARIADB_ALLOW_CLEAR_PASSWORD=" : "yes"
+  }
+}, {
+  "database" : "DB2",
+  "image_name" : "ibmcom/db2:latest",
+  "name" : null,
+  "port" : "50000",
+  "pass" : "admin",
+  "containerId" : null,
+  "envs" : {
+    "LICENSE=" : "accept",
+    "DB2INST1_PASSWORD=" : "getPass",
+    "DBNAME=" : "toolbox"
+  }
+} ]
