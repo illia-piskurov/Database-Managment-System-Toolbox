@@ -4,13 +4,10 @@ target/
 !**/src/test/**/target/
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
 *.iws
 *.iml
 *.ipr
+.idea
 
 ### Eclipse ###
 .apt_generated
@@ -36,3 +33,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+out/artifacts/DatabaseManagmentSystemToolbox_jar/config.json
+out/artifacts/DatabaseManagmentSystemToolbox_jar/DatabaseManagmentSystemToolbox.jar
+dependency-reduced-pom.xml
