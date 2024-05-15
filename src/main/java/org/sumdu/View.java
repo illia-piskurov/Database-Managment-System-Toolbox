@@ -17,15 +17,24 @@ public class View extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         if (isDockerInstalled()) {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("main.fxml"));
-            Parent root = loader.load();
-            MainController mainController = loader.getController();
-            primaryStage.getIcons().add(new Image(String.valueOf(getClass().getResource("icon.png"))));
-            primaryStage.setTitle("Database Management System Toolbox");
-            primaryStage.setScene(new Scene(root, 600, 600));
-            primaryStage.setResizable(false);
-            primaryStage.setOnCloseRequest(event -> mainController.stopAllContainers());
-            primaryStage.show();
+            if (isDockerRunning()) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("main.fxml"));
+                Parent root = loader.load();
+                MainController mainController = loader.getController();
+                primaryStage.getIcons().add(new Image(String.valueOf(getClass().getResource("icon.png"))));
+                primaryStage.setTitle("Database Management System Toolbox");
+                primaryStage.setScene(new Scene(root, 600, 600));
+                primaryStage.setResizable(false);
+                primaryStage.setOnCloseRequest(event -> mainController.stopAllContainers());
+                primaryStage.show();
+            } else {
+                Parent root = FXMLLoader.load(getClass().getResource("dockerNotRunning.fxml"));
+                primaryStage.getIcons().add(new Image(String.valueOf(getClass().getResource("icon.png"))));
+                primaryStage.setTitle("Database Management System Toolbox");
+                primaryStage.setScene(new Scene(root, 400, 200));
+                primaryStage.setResizable(false);
+                primaryStage.show();
+            }
         } else {
             Parent root = FXMLLoader.load(getClass().getResource("nodocker.fxml"));
             primaryStage.getIcons().add(new Image(String.valueOf(getClass().getResource("icon.png"))));
@@ -47,6 +56,23 @@ public class View extends Application {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.contains("Docker version")) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean isDockerRunning() {
+        try {
+            Process process = new ProcessBuilder("docker", "ps").start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("CONTAINER ID")) {
                     return true;
                 }
             }
